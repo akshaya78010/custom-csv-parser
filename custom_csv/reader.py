@@ -1,27 +1,27 @@
 class CustomCsvReader:
     """
-    A custom CSV reader implemented from scratch.
-    Reads CSV files in a streaming manner.
+    Custom CSV reader implemented from scratch.
+    Supports quoted fields, escaped quotes, commas, and embedded newlines.
+    Designed for streaming large files.
     """
 
     def __init__(self, file_path):
-        self.file = open(file_path, "r", encoding="utf-8")
+        self.file = open(file_path, "r", encoding="utf-8", newline="")
 
     def __iter__(self):
         return self
 
     def __next__(self):
         row = []
-        field = ""
+        field = []
         in_quotes = False
 
         while True:
             ch = self.file.read(1)
 
-            # End of file
             if ch == "":
                 if field or row:
-                    row.append(field)
+                    row.append("".join(field))
                     return row
                 self.file.close()
                 raise StopIteration
@@ -30,21 +30,24 @@ class CustomCsvReader:
                 if in_quotes:
                     next_char = self.file.read(1)
                     if next_char == '"':
-                        field += '"'
+                        field.append('"')
                     else:
                         in_quotes = False
                         if next_char:
-                            self.file.seek(self.file.tell() - 1)
+                            ch = next_char
+                        else:
+                            continue
                 else:
                     in_quotes = True
+                    continue
 
-            elif ch == "," and not in_quotes:
-                row.append(field)
-                field = ""
+            if ch == "," and not in_quotes:
+                row.append("".join(field))
+                field = []
 
             elif ch == "\n" and not in_quotes:
-                row.append(field)
+                row.append("".join(field))
                 return row
 
             else:
-                field += ch
+                field.append(ch)
